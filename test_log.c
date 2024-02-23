@@ -1,6 +1,6 @@
 #include "log.h"
+#include <stdio.h>
 #include <sys/ipc.h>
-#include <sys/mman.h>
 #include <sys/shm.h>
 #include <sys/wait.h>
 
@@ -9,7 +9,13 @@
 #include <unistd.h>
 
 void p_lock(bool lock, void *udata) {
-  lock ? pthread_mutex_lock(udata) : pthread_mutex_unlock(udata);
+  if (lock) {
+    pthread_mutex_lock(udata);
+    sleep(3);
+    return;
+  }
+  pthread_mutex_unlock(udata);
+  // lock ? pthread_mutex_lock(udata) : pthread_mutex_unlock(udata);
 }
 
 int main() {
@@ -18,14 +24,14 @@ int main() {
 
   int shmid = shmget(key, shared_size, IPC_CREAT | 0666);
   if (shmid == -1) {
-    perror("shmget");
-    exit(EXIT_FAILURE);
+    perror("cannot get shared memory:");
+    return -1;
   }
 
   pthread_mutex_t *mutex = (pthread_mutex_t *)shmat(shmid, NULL, 0);
-
   pthread_mutexattr_t mutex_attr;
   pthread_mutexattr_init(&mutex_attr);
+
   pthread_mutexattr_setpshared(&mutex_attr, PTHREAD_PROCESS_SHARED);
 
 #ifdef __USE_XOPEN2K
@@ -34,16 +40,16 @@ int main() {
 
   pthread_mutex_init(mutex, &mutex_attr);
 
-  log_set_lock(p_lock, mutex);
   int log_level = 0; // trace
   log_init_default(NULL, "simple_log", 1, 1024, 10, false, false);
+  log_set_lock(p_lock, mutex);
 
   log_debug("this is parent process first time print information.");
   pid_t pid = fork();
   switch (pid) {
   case -1:
     perror("fork failed");
-    return 1;
+    return -1;
   case 0:
     for (int i = 0; i < 3; i++) {
       log_debug("This is the child process (PID: %d):%d", getpid(), i);
@@ -64,5 +70,6 @@ int main() {
   /* Detach and Remove shared memory segment*/
   shmdt(mutex);
   shmctl(shmid, IPC_RMID, NULL);
+
   return 0;
 }
