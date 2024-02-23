@@ -1,63 +1,68 @@
 #include "log.h"
-#include <stdbool.h>
-#include <stdio.h>
+#include <sys/ipc.h>
+#include <sys/mman.h>
+#include <sys/shm.h>
 #include <sys/wait.h>
-#include <unistd.h>
+
 #include <pthread.h>
+#include <stdlib.h>
+#include <unistd.h>
 
-static pthread_mutex_t mutex;
-
-void p_lock(bool lock, void *udata)
-{
-    if (lock)
-    {
-        pthread_mutex_lock(udata);
-        printf("PD:%d lock:%p\n", getpid(), udata);
-    }
-    else
-    {
-        pthread_mutex_unlock(udata);
-        printf("PD:%d unlock:%p\n", getpid(), udata);
-    }
+void p_lock(bool lock, void *udata) {
+  lock ? pthread_mutex_lock(udata) : pthread_mutex_unlock(udata);
 }
 
-int main()
-{
-    pthread_mutexattr_t mutex_attr;
-    pthread_mutexattr_init(&mutex_attr);
-    pthread_mutexattr_setpshared(&mutex_attr, PTHREAD_PROCESS_SHARED);
+int main() {
+  size_t shared_size = sizeof(pthread_mutex_t);
+  key_t key = 0x9911;
 
-    if (pthread_mutex_init(&mutex, &mutex_attr) != 0)
-    {
-        perror("init pthread mutex error:");
-        return -1;
+  int shmid = shmget(key, shared_size, IPC_CREAT | 0666);
+  if (shmid == -1) {
+    perror("shmget");
+    exit(EXIT_FAILURE);
+  }
+
+  pthread_mutex_t *mutex = (pthread_mutex_t *)shmat(shmid, NULL, 0);
+
+  pthread_mutexattr_t mutex_attr;
+  pthread_mutexattr_init(&mutex_attr);
+  pthread_mutexattr_setpshared(&mutex_attr, PTHREAD_PROCESS_SHARED);
+
+#ifdef __USE_XOPEN2K
+  pthread_mutexattr_setrobust(&mutex_attr, PTHREAD_MUTEX_ROBUST);
+#endif
+
+  pthread_mutex_init(mutex, &mutex_attr);
+
+  log_set_lock(p_lock, mutex);
+  int log_level = 0; // trace
+  log_init_default(NULL, "simple_log", 1, 1024, 10, false, false);
+
+  log_debug("this is parent process first time print information.");
+  pid_t pid = fork();
+  switch (pid) {
+  case -1:
+    perror("fork failed");
+    return 1;
+  case 0:
+    for (int i = 0; i < 3; i++) {
+      log_debug("This is the child process (PID: %d):%d", getpid(), i);
     }
-
-    log_set_lock(p_lock, &mutex);
-    int log_level = 0; // trace
-    log_init_default(NULL, "simple_log", 1, 1024, 10, false, false);
-
-    log_debug("this is parent process first time print information.");
-    pid_t pid = fork();
-    switch (pid)
-    {
-        case -1: perror("fork failed"); return 1;
-        case 0:
-            for (int i = 0; i < 3; i++)
-            {
-                log_debug("This is the child process (PID: %d):%d", getpid(),
-                          i);
-            }
-            break;
-        default:
-            for (int i = 0; i < 3; i++)
-            {
-                log_debug("This is the parent process (PID: %d):%d", getpid(),
-                          i);
-            }
-            break;
+    break;
+  default:
+    for (int i = 0; i < 3; i++) {
+      log_debug("This is the parent process (PID: %d):%d", getpid(), i);
     }
+    break;
+  }
 
-    wait(NULL);
-    return 0;
+  wait(NULL);
+
+  pthread_mutex_destroy(mutex);
+  pthread_mutexattr_destroy(&mutex_attr);
+
+  /* Detach and Remove shared memory segment*/
+  shmdt(mutex);
+  shmctl(shmid, IPC_RMID, NULL);
+  return 0;
 }
