@@ -3,6 +3,7 @@
  * time: 2024/2/22 16:31:45
  * TODO: 实现异步队列日志提交
  */
+
 #include "log.h"
 #include "stdbool.h"
 #include <bits/pthreadtypes.h>
@@ -23,6 +24,8 @@
 #define MAX_FILE_NAME 128
 #define MAX_CB_NAME 32
 #define MAX_FILE_AB_PATH MAX_FILE_NAME + MAX_FILE_NAME + 32
+#define CTL_CB_NAME "ctl_file"
+#define DST_CB_BANE "file"
 
 #define container_of(ptr, type, member)                                        \
   ({                                                                           \
@@ -169,14 +172,15 @@ FILE *reopen() {
     perror("cannot open file in wb mode");
     return NULL;
   }
+
   fclose(handle);
 
   if (!(handle = fopen(name, "ab+"))) {
     perror("cannot open file in ab mode");
     return NULL;
   }
-  printf("reopen:%p\n", handle);
 
+  printf("reopen:%p\n", handle);
   return handle;
 }
 
@@ -207,7 +211,13 @@ int rotating_file_sink(Callback *cb) {
   }
 
   fclose(cb->handle);
-  cb->handle = reopen();
+
+  Callback *dst_cb = find_cb_(DST_CB_BANE);
+  if (!(dst_cb->handle = cb->handle = reopen())) {
+    perror("reopen error");
+    return -1;
+  }
+
   printf("reset cb handle to:%p\n", cb->handle);
   return 0;
 }
@@ -216,7 +226,7 @@ void log_control_callback(log_Event *ev) {
   Callback *cb = container_of(ev->handle, Callback, handle);
 
   long size = ftell(cb->handle);
-  printf("size:%lu\n", size);
+  printf("tell size:%lu from %p\n", size, cb->handle);
   if (size > 0) // L.max_file_size
   {
     rotating_file_sink(cb);
@@ -226,19 +236,6 @@ void log_control_callback(log_Event *ev) {
 int log_init_default(const char *out_path, const char *out_name_pattern,
                      int level, long max_file_size, int max_files, bool async,
                      bool quiet) {
-  // TODO:replace with file path
-  // key_t key_l = 0x9914;
-  // int size_l = sizeof(Log);
-  // int shmid_l = shmget(key_l, size_l, IPC_CREAT | 0666);
-  // if (shmid_l == -1)
-  // {
-  //     perror("cannot get shared memory");
-  //     return -1;
-  // }
-
-  // L = (Log *)shmat(shmid_l, NULL, 0);
-  // memset(L, 0, size_l); // clean the memory
-
   if (out_path) {
     memcpy(L.out_path, out_path, strlen(out_path) + 1);
 
@@ -291,10 +288,11 @@ int log_init_default(const char *out_path, const char *out_name_pattern,
   }
 
   // TODO:generate callback name
-  log_add_callback(log_control_callback, file, level, "ctl_file", NULL);
+  log_add_callback(log_control_callback, file, level, CTL_CB_NAME, NULL);
   if (!quiet)
     log_add_callback(stdout_callback, stderr, L.level, "stderr", NULL);
-  log_add_callback(file_callback, file, L.level, "file", &(file_pattern){1});
+  log_add_callback(file_callback, file, L.level, DST_CB_BANE,
+                   &(file_pattern){1});
   return 0;
 }
 
