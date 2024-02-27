@@ -150,7 +150,6 @@ static void file_callback(log_Event *ev)
 {
     Callback *cb = container_of(ev->handle, Callback, handle);
 
-    printf("write to file handle:%p\n", cb->handle);
     char buf[64];
     buf[strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", ev->time)] = '\0';
     fprintf(cb->handle, "%s %-5s %s:%d: ", buf, level_strings[ev->level],
@@ -210,7 +209,6 @@ FILE *reopen()
         return NULL;
     }
 
-    printf("reopen:%p\n", handle);
     return handle;
 }
 
@@ -261,7 +259,7 @@ void log_control_callback(log_Event *ev)
 
     long size = ftell(cb->handle);
 
-    if (size > 0) // L.max_file_size
+    if (size > L.max_file_size) // L.max_file_size
     {
         rotating_file_sink(cb);
     }
@@ -307,7 +305,7 @@ int sm_log_init(const char *out_path, const char *out_name_pattern, int level,
 
     L.level = level;
     L.max_files = max_files;
-    L.max_file_size = max_file_size;
+    L.max_file_size = max_file_size * 1024 * 1024;
 
     if (strlen(L.out_path) > 0)
     {

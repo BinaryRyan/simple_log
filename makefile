@@ -14,3 +14,4 @@ log.o: log.c log.h
 
 clean:
 	rm -f *.o test_log
+	rm -rf ./*.log
