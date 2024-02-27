@@ -1,0 +1,28 @@
+---
+BasedOnStyle: Google
+---
+Language: Cpp
+AccessModifierOffset: -4
+AllowAllConstructorInitializersOnNextLine: false
+AllowShortCaseLabelsOnASingleLine: true
+AlwaysBreakBeforeMultilineStrings: false
+BraceWrapping:
+  AfterClass: true
+  AfterControlStatement: Always
+  AfterEnum: true
+  AfterFunction: true
+  AfterStruct: true
+  AfterUnion: true
+  AfterExternBlock: true
+  BeforeCatch: true
+  BeforeElse: true
+BreakBeforeBraces: Custom
+CommentPragmas: "^ NOLINT:"
+IndentWidth: 4
+PointerAlignment: Right
+SortIncludes: false
+SortUsingDeclarations: false
+SpacesBeforeTrailingComments: 1
+SpacesInContainerLiterals: false
+Standard: Cpp11
+TabWidth: 4
