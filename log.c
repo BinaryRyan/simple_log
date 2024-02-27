@@ -203,7 +203,15 @@ FILE *reopen()
     char *name = calc_filename(1);
     FILE *handle = NULL;
 
-    if (!(handle = fopen(name, "ab+")))
+    if (!(handle = fopen(name, "wb")))
+    {
+        perror("cannot open file in ab mode");
+        return NULL;
+    }
+
+    fclose(handle);
+
+    if (!(handle = fopen(name, "ab")))
     {
         perror("cannot open file in ab mode");
         return NULL;
