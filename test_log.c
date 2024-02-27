@@ -11,7 +11,7 @@
 void p_lock(bool lock, void *udata) {
   if (lock) {
     pthread_mutex_lock(udata);
-    sleep(3);
+    sleep(1);
     return;
   }
   pthread_mutex_unlock(udata);

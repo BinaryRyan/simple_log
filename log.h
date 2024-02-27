@@ -13,7 +13,7 @@ typedef struct {
   const char *fmt;  // fmt
   const char *file; // call file name
   struct tm *time;  // log time
-  int fd;           // log out file handle
+  FILE *handle;     // log out file handle
   int line;         // line number
   int level;        // log level
 } log_Event;
@@ -49,7 +49,7 @@ void log_set_level(int level);
 void log_set_quiet(bool enable);
 
 // return callback index
-int log_add_callback(log_LogFn fn, int fd, int level, const char *cb_name,
+int log_add_callback(log_LogFn fn, FILE *handle, int level, const char *cb_name,
                      file_pattern *fpt);
 // remove callback with index
 int log_remove_callback(int index);
