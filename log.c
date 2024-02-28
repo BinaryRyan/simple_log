@@ -9,7 +9,6 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <pthread.h>
-#include <stdatomic.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <string.h>
@@ -198,18 +197,21 @@ int log_add_callback(log_LogFn fn, FILE *handle, int level, const char *cb_name)
     return -1;
 }
 
-FILE *reopen()
+FILE *reopen(bool clear)
 {
     char *name = calc_filename(1);
     FILE *handle = NULL;
 
-    if (!(handle = fopen(name, "wb")))
+    if (clear)
     {
-        perror("cannot open file in ab mode");
-        return NULL;
-    }
+        if (!(handle = fopen(name, "wb")))
+        {
+            perror("cannot open file in ab mode");
+            return NULL;
+        }
 
-    fclose(handle);
+        fclose(handle);
+    }
 
     if (!(handle = fopen(name, "ab")))
     {
@@ -251,9 +253,8 @@ int rotating_file_sink(Callback *cb)
     }
 
     fclose(cb->handle);
-
     Callback *dst_cb = find_cb_(DST_CB_BANE);
-    if (!(dst_cb->handle = cb->handle = reopen()))
+    if (!(dst_cb->handle = cb->handle = reopen(true)))
     {
         perror("reopen error");
         return -1;
@@ -269,7 +270,18 @@ void log_control_callback(log_Event *ev)
 
     if (size > L.max_file_size) // L.max_file_size
     {
-        rotating_file_sink(cb);
+        FILE *f = reopen(false);
+        if (!f)
+        {
+            return;
+        }
+
+        size = ftell(f);
+        fclose(f);
+        if (size > L.max_file_size)
+        {
+            rotating_file_sink(cb);
+        }
     }
 }
 
@@ -344,7 +356,7 @@ int sm_log_init(const char *out_path, const char *out_name_pattern, int level,
 #endif
     pthread_mutex_init(L.mutex, mutex_attr);
 
-    FILE *file = reopen();
+    FILE *file = reopen(true);
     if (!file)
     {
         perror("cannot open log file:");
@@ -367,6 +379,8 @@ void sm_log_uninit()
     /* Detach and Remove shared memory segment*/
     shmdt(L.mutex);
     shmctl(L.mutext_shm_id, IPC_RMID, NULL);
+
+    // TODO:close file handle
 }
 
 static inline void init_event(log_Event *ev, void *handle)
