@@ -3,7 +3,6 @@
  * time: 2024/2/22 16:31:45
  * TODO: 实现异步队列日志提交
  */
-
 #include "log.h"
 #include "stdbool.h"
 #include <errno.h>
@@ -23,7 +22,7 @@
 #define MAX_FILE_PATH 255
 #define MAX_FILE_NAME 128
 #define MAX_CB_NAME 32
-#define MAX_FILE_AB_PATH MAX_FILE_NAME + MAX_FILE_NAME + 32
+#define MAX_FILE_AB_PATH MAX_FILE_NAME + MAX_FILE_PATH + 32
 #define CTL_CB_NAME "ctl_file"
 #define DST_CB_BANE "file"
 
@@ -114,7 +113,7 @@ Callback *find_cb_(const char *name)
 char *calc_filename(int index)
 {
     static char filename[MAX_FILE_AB_PATH] = {0};
-    snprintf(filename, sizeof(filename), "%s/%s-%d.log", L.out_path, L.out_name,
+    snprintf(filename, MAX_FILE_AB_PATH, "%s/%s-%d.log", L.out_path, L.out_name,
              index);
 
     return filename;
@@ -351,7 +350,9 @@ int sm_log_init(const char *out_path, const char *out_name_pattern, int level,
     pthread_mutexattr_init(mutex_attr);
     pthread_mutexattr_setpshared(mutex_attr, PTHREAD_PROCESS_SHARED);
 #if __linux__
-    pthread_mutexattr_setrobust(attr, PTHREAD_MUTEX_ROBUST);
+#ifdef __USE_XOPEN2K
+    pthread_mutexattr_setrobust(mutex_attr, PTHREAD_MUTEX_ROBUST);
+#endif
 #endif
     pthread_mutex_init(L.mutex, mutex_attr);
 
