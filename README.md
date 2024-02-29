@@ -1,4 +1,4 @@
-这是一个进程安全级别的日志库,更改自[这里](https://github.com/rxi/log.c)
+这是一个进程安全级别的日志库,更改自[这里](https://github.com/rxi/log.c),请注意，这个库异步信号不安全！！！
 ### 构建[Build]
 
 ```bash
