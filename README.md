@@ -1,6 +1,11 @@
 这是一个进程安全级别的日志库,更改自[这里](https://github.com/rxi/log.c)
+### 构建[Build]
 
-### 特性
+```bash
+make
+```
+
+### 特性[Feature]
 
 1. 进程/线程 安全
 
@@ -8,7 +13,7 @@
 
 3. 日志文件滚动
 
-### 案例
+### 案例[Example]
 
 ```C
 #include "log.h"
