@@ -1,17 +1,17 @@
 CC = gcc
 CFLAGS = -Wall -Wextra -std=c11
 
-all: test_log
+all: simple_log
 
-test_log: test_log.o log.o
-	$(CC) $(CFLAGS) -o test_log test_log.o log.o
+simple_log: simple_log.o log.o
+	$(CC) $(CFLAGS) -o simple_log simple_log.o log.o
 
-test_log.o: test_log.c log.h
-	$(CC) $(CFLAGS) -c test_log.c
+simple_log.o: simple_log.c log.h
+	$(CC) $(CFLAGS) -c simple_log.c
 
 log.o: log.c log.h
 	$(CC) $(CFLAGS) -c log.c
 
 clean:
-	rm -f *.o test_log
+	rm -f *.o simple_log
 	rm -rf ./*.log
