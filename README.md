@@ -1,4 +1,4 @@
-这是一个进程安全级别的日志库,更改自[这里](https://github.com/rxi/log.c),请注意，这个库异步信号不安全！！！
+这是一个进程安全级别的日志库,更改自[这里](https://github.com/rxi/log.c),另外借鉴了sdplog的rotate方式。请注意，这个库异步信号不安全！！！
 ### 构建[Build]
 
 ```bash
