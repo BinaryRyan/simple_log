@@ -260,25 +260,36 @@ int rotating_file_sink(Callback *cb)
     return 0;
 }
 
+int reopen_size()
+{
+    FILE *f = reopen(false);
+    if (!f)
+    {
+        perror("reopen error");
+        return -1;
+    }
+
+    int size = ftell(f);
+    fclose(f);
+    return size;
+}
+
 void log_control_callback(log_Event *ev)
 {
     Callback *cb = container_of(ev->handle, Callback, handle);
 
     long size = ftell(cb->handle);
 
-    if (size > L.max_file_size) // L.max_file_size
+    if (size > L.max_file_size)
     {
-        FILE *f = reopen(false);
-        if (!f)
-        {
-            return;
-        }
+        size = reopen_size();
 
-        size = ftell(f);
-        fclose(f);
-        if (size > L.max_file_size)
+        if (size != -1)
         {
-            rotating_file_sink(cb);
+            if (size > L.max_file_size)
+            {
+                rotating_file_sink(cb);
+            }
         }
     }
 }
