@@ -28,6 +28,17 @@ typedef struct
 typedef void (*log_LogFn)(log_Event *ev);
 typedef void (*log_LockFn)(bool lock, void *udata);
 
+typedef struct
+{
+    int index_cb;
+    log_LogFn fn;
+    FILE *handle;
+    int level;
+    char name[32];
+} Callback;
+
+int rotating_file_sink(Callback *cb);
+
 enum LOG_LEVEL
 {
     LOG_TRACE,
@@ -49,7 +60,7 @@ enum LOG_LEVEL
 void log_log(int level, const char *file, int line, const char *fmt, ...);
 const char *log_level_string(int level);
 int sm_log_init(const char *out_path, const char *out_name_pattern, int level,
-                long max_file_size, int max_files, bool async, bool quiet);
+                long max_file_size, int max_files, bool quiet);
 void sm_log_uninit();
 
 #endif
