@@ -162,8 +162,8 @@ int rotating_file_sink(Callback *cb)
     }
 
     /*reopen file*/
-    fclose(cb->handle);
     Callback *dst_cb = find_cb_(DST_CB_BANE);
+    fclose(dst_cb->handle);
     dst_cb->handle = reopen(true);
     return 0;
 }
